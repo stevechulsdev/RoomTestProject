@@ -9,11 +9,14 @@ import com.stevechulsdev.roomtestproject.entity.Person
 import io.reactivex.Observable
 import io.reactivex.Scheduler
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
+
+    private var disposeable: Disposable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,54 +24,32 @@ class MainActivity : AppCompatActivity() {
 
         val person = Person(0, "stevechulsdev", "Developer")
 
+        var dataPersonList = arrayListOf<Person>()
+
         bt_create_db.setOnClickListener {
 
         }
 
         bt_insert.setOnClickListener {
-//            PersonDatabase
-//                .getInstance(this)?.let {
-//                    it.getPersonDao().insert(person)
-//                }
-
             Observable.just(PersonDatabase.getInstance(this))
                 .subscribeOn(Schedulers.io())
                 .subscribe(
                     {
                         it?.let {
                             it.getPersonDao().insert(person)
+                            disposeable?.let {
+                                it.dispose()
+                            }
                         }
                     },
                     {
-
+                        Log.e("stevechulsdev", "${it.message}")
                     }
                 )
-//            PersonDatabase
-//                .getInstance(this)?.let {
-//                    it.getPersonDao().insert(person)
-//                }
-
-//            Observable.just(person)
-//                .subscribeOn(Schedulers.io())
-//                .subscribe(
-//                    {
-//                        PersonDatabase
-//                            .getInstance(this)?.let {
-//                                it.getPersonDao().insert(person)
-//                            }
-//                    },
-//                    {
-//                        Log.e("stevechulsdev", "${it.message}")
-//                    }
-//                )
         }
 
         bt_read.setOnClickListener {
-//            PersonDatabase
-//                .getInstance(this)?.let {
-//                    it.getPersonDao().getAllPerson()
-//                }
-            Observable.just(PersonDatabase.getInstance(this))
+            disposeable = Observable.just(PersonDatabase.getInstance(this))
                 .subscribeOn(Schedulers.io())
                 .subscribe(
                     {
@@ -78,9 +59,12 @@ class MainActivity : AppCompatActivity() {
                                 .observeOn(AndroidSchedulers.mainThread())
                                 .subscribe(
                                     {
-                                        for(index in it.indices) {
-                                            tv_show_data.text = "id : ${it[index].id}, name : ${it[index].name}, job : ${it[index].job}"
-//                                            tv_show_data.append("id : ${it[index].id}, name : ${it[index].name}, job : ${it[index].job}\n")
+                                        tv_show_data.text = ""
+//                                        tv_show_data.clearComposingText()
+                                        dataPersonList.addAll(it)
+
+                                        for(index in dataPersonList.indices) {
+                                            tv_show_data.append("id : ${dataPersonList[index].id}, name : ${dataPersonList[index].name}, job : ${dataPersonList[index].job}\n")
                                         }
                                     },
                                     {
@@ -93,30 +77,6 @@ class MainActivity : AppCompatActivity() {
                         Log.e("stevechulsdev", "${it.message}")
                     }
                 )
-
-//            PersonDatabase
-//                .getInstance(this)?.let { personDatab ->
-////                    personDatab.getPersonDao().getAllPersonRx().observe(this, androidx.lifecycle.Observer {
-////                        for(index in it.indices) {
-////                            tv_show_data.append("id : ${it[index].id}, name : ${it[index].name}, job : ${it[index].job}\n")
-////                        }
-////                    })
-//
-//                    personDatab.getPersonDao()
-//                        .getAllPersonRx()
-//                        .observeOn(AndroidSchedulers.mainThread())
-////                        .subscribeOn(Schedulers.io())
-//                        .subscribe(
-//                            {
-//                                for(index in it.indices) {
-//                                    tv_show_data.append("id : ${it[index].id}, name : ${it[index].name}, job : ${it[index].job}\n")
-//                                }
-//                            },
-//                            {
-//                                Log.e("stevechulsdev", "${it.message}")
-//                            }
-//                        )
-//                }
         }
 
         bt_delete.setOnClickListener {
@@ -128,10 +88,14 @@ class MainActivity : AppCompatActivity() {
                 .subscribeOn(Schedulers.io())
                 .subscribe(
                     {
+                        it?.let {
+                            it.getPersonDao().clearAll()
+                        }
                         PersonDatabase
                             .getInstance(this)?.let {
                                 it.getPersonDao().clearAll()
                                 tv_show_data.text = ""
+                                dataPersonList.clear()
                             }
                     },
                     {
